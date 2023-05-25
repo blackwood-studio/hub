@@ -22,10 +22,7 @@ struct Config {
 }
 
 fn broadcast(shared: &MutexGuard<Shared>, buffer: [u8; BUFFER_SIZE]) -> Result<(), Error> {
-    println!("{:?}", shared.streams());
-
-    for (s, stream) in shared.streams() {
-        println!("Stream: {:?}", s);
+    for (_, stream) in shared.streams() {
         stream.try_write(&buffer)?;
     }
 
