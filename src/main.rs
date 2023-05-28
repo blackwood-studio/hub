@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-
 use anyhow::Error;
 use cluster::config::Config;
 use cluster::thread::Options;
@@ -9,8 +8,6 @@ use config::Load;
 use tokio::net::TcpListener;
 use tokio::task;
 use tokio::sync::Mutex;
-
-
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
