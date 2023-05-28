@@ -28,8 +28,7 @@ impl<'a> Thread<'a> {
     }
 
     async fn broadcast(&self, buffer: [u8; BUFFER_SIZE]) -> Result<(), Error> {
-        let options = &self.options;
-        let streams = &options.streams;
+        let streams = &self.options.streams;
 
         for (_, stream) in streams {
             stream.try_write(&buffer)?;
@@ -39,9 +38,7 @@ impl<'a> Thread<'a> {
     }
     
     pub async fn socket_process(&self, socket_address: SocketAddr) -> Result<(), Error> {
-        let options = &self.options;
-        let stream = options.streams.get(&socket_address).to_err()?;
-
+        let stream = self.options.streams.get(&socket_address).to_err()?;
         let mut buffer = [0; BUFFER_SIZE];
     
         loop {
