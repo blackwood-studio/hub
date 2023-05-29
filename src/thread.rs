@@ -9,29 +9,29 @@ use tokio::sync::{MutexGuard, Mutex};
 use crate::constants::BUFFER_SIZE;
 use crate::option::ErrCast;
 
-pub struct Options {
+pub struct Global {
     pub streams: HashMap<SocketAddr, TcpStream>
 }
 
-impl Options {
-    pub fn new() -> Arc<Mutex<Options>> {
-        let options = Options { streams: HashMap::new() };
-        let mutex = Mutex::new(options);
+impl Global {
+    pub fn new() -> Arc<Mutex<Global>> {
+        let global = Global { streams: HashMap::new() };
+        let mutex = Mutex::new(global);
         Arc::new(mutex)
     }
 }
 
 pub struct Thread<'a> {
-    options: MutexGuard<'a, Options>
+    global: MutexGuard<'a, Global>
 }
 
 impl<'a> Thread<'a> {
-    pub async fn new(options: MutexGuard<'a, Options>) -> Thread<'a> {
-        Thread { options }
+    pub async fn new(global: MutexGuard<'a, Global>) -> Thread<'a> {
+        Thread { global }
     }
 
     async fn broadcast(&self, buffer: [u8; BUFFER_SIZE]) -> Result<(), Error> {
-        let streams = &self.options.streams;
+        let streams = &self.global.streams;
 
         for (_, stream) in streams {
             stream.try_write(&buffer)?;
@@ -41,7 +41,7 @@ impl<'a> Thread<'a> {
     }
     
     pub async fn socket_process(&self, socket_address: SocketAddr) -> Result<(), Error> {
-        let stream = self.options.streams.get(&socket_address).to_err()?;
+        let stream = self.global.streams.get(&socket_address).to_err()?;
         let mut buffer = [0; BUFFER_SIZE];
     
         loop {
