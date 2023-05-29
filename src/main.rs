@@ -20,14 +20,12 @@ async fn main() -> Result<(), Error> {
             global.streams.insert(socket_address, stream);
         }
 
-        {
-            let global = global.clone();
+        let global = global.clone();
 
-            task::spawn(async move {
-                let global = global.lock().await;
-                let thread = Thread::new(global).await;
-                let _ = thread.socket_process(socket_address).await;
-            });
-        }
+        task::spawn(async move {
+            let global = global.lock().await;
+            let thread = Thread::new(global).await;
+            let _ = thread.socket_process(socket_address).await;
+        });
     }
 }
