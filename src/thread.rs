@@ -1,9 +1,10 @@
 use std::net::SocketAddr;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use anyhow::Error;
 use tokio::net::TcpStream;
-use tokio::sync::MutexGuard;
+use tokio::sync::{MutexGuard, Mutex};
 
 use crate::constants::BUFFER_SIZE;
 use crate::option::ErrCast;
@@ -13,8 +14,10 @@ pub struct Options {
 }
 
 impl Options {
-    pub fn new() -> Options {
-        Options { streams: HashMap::new() }
+    pub fn new() -> Arc<Mutex<Options>> {
+        let options = Options { streams: HashMap::new() };
+        let mutex = Mutex::new(options);
+        Arc::new(mutex)
     }
 }
 
