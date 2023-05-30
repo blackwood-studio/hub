@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use anyhow::Error;
 use tokio::net::TcpStream;
-use tokio::sync::{MutexGuard, Mutex};
+use tokio::sync::RwLock;
+use tokio::sync::RwLockReadGuard;
 
 use crate::constants::BUFFER_SIZE;
 use crate::option::ErrCast;
@@ -14,19 +15,19 @@ pub struct Global {
 }
 
 impl Global {
-    pub fn new() -> Arc<Mutex<Global>> {
+    pub fn new() -> Arc<RwLock<Global>> {
         let global = Global { streams: HashMap::new() };
-        let mutex = Mutex::new(global);
-        Arc::new(mutex)
+        let rw_lock = RwLock::new(global);
+        Arc::new(rw_lock)
     }
 }
 
 pub struct Thread<'a> {
-    global: MutexGuard<'a, Global>
+    global: RwLockReadGuard<'a, Global>
 }
 
 impl<'a> Thread<'a> {
-    pub async fn new(global: MutexGuard<'a, Global>) -> Thread<'a> {
+    pub async fn new(global: RwLockReadGuard<'a, Global>) -> Thread<'a> {
         Thread { global }
     }
 
@@ -34,7 +35,10 @@ impl<'a> Thread<'a> {
         let streams = &self.global.streams;
 
         for (_, stream) in streams {
-            stream.try_write(&buffer)?;
+            match stream.peer_addr() {
+                Ok(_) => stream.try_write(&buffer)?,
+                Err(_) => 0
+            };
         }
     
         Ok(())
@@ -42,12 +46,16 @@ impl<'a> Thread<'a> {
     
     pub async fn socket_process(&self, socket_address: SocketAddr) -> Result<(), Error> {
         let stream = self.global.streams.get(&socket_address).to_err()?;
-        let mut buffer = [0; BUFFER_SIZE];
-    
+
         loop {
+            let mut buffer = [0; BUFFER_SIZE];
             stream.readable().await?;
-            let size = stream.try_read(&mut buffer)?;
-            if size > 0 { self.broadcast(buffer).await? }
+            
+            match stream.try_read(&mut buffer) {
+                Ok(0) => break Ok(()),
+                Ok(_) => self.broadcast(buffer).await?,
+                Err(_) => self.broadcast(buffer).await?,
+            };
         }
     }
 }

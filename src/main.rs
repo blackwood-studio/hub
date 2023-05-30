@@ -14,18 +14,23 @@ async fn main() -> Result<(), Error> {
 
     loop {
         let (stream, socket_address) = listener.accept().await?;
-        
+
         {
-            let mut global = global.lock().await;
-            global.streams.insert(socket_address, stream);
+            let mut guard = global.write().await;
+            guard.streams.insert(socket_address, stream);
         }
 
         let global = global.clone();
 
         task::spawn(async move {
-            let global = global.lock().await;
-            let thread = Thread::new(global).await;
-            let _ = thread.socket_process(socket_address).await;
+            {
+                let guard = global.read().await;
+                let thread = Thread::new(guard).await;
+                let _ = thread.socket_process(socket_address).await;
+            }
+
+            let mut guard = global.try_write().unwrap();
+            guard.streams.remove(&socket_address);
         });
     }
 }
