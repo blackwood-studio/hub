@@ -18,6 +18,7 @@ impl Logger {
         let output = format!("[ WARNING ] {}\n", message.to_string());
         let mut stdout = io::stdout().lock();
         let _ = stdout.write_all(output.as_bytes());
+        let _ = stdout.flush();
     }
 
     fn error<M>(message: M) -> !
@@ -25,6 +26,7 @@ impl Logger {
         let output = format!("[ ERROR ] {}\n", message.to_string());
         let mut stdout = io::stdout().lock();
         let _ = stdout.write_all(output.as_bytes());
+        let _ = stdout.flush();
         process::exit(-1);
     }
 }
