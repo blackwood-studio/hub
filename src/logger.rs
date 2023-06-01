@@ -1,10 +1,14 @@
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Display;
-use std::io;
-use std::io::Write;
 use std::process;
 use std::str::FromStr;
+
+use once_cell::sync::Lazy;
+use tokio::io::AsyncWriteExt;
+use tokio::io::Stdout;
+use tokio::io::stdout;
+use tokio::sync::Mutex;
 
 use crate::settings::Settings;
 
@@ -81,10 +85,12 @@ impl FromStr for Mode {
     }
 }
 
+static STDOUT: Lazy<Mutex<Stdout>> = Lazy::new(|| Mutex::new(stdout()));
+
 pub struct Logger {  }
 
 impl Logger {
-    pub fn info<M>(message: M) -> ()
+    pub async fn info<M>(message: M) -> ()
     where M: ToString{
         match Settings::logging_mode() {
             Mode::NONE => return,
@@ -93,12 +99,12 @@ impl Logger {
         }
 
         let output = format!("[ INFO ] {}\n", message.to_string());
-        let mut stdout = io::stdout().lock();
-        let _ = stdout.write_all(output.as_bytes());
-        let _ = stdout.flush();
+        let mut stdout = STDOUT.lock().await;
+        let _ = stdout.write_all(output.as_bytes()).await;
+        let _ = stdout.flush().await;
     }
 
-    pub fn warning<M>(message: M) -> ()
+    pub async fn warning<M>(message: M) -> ()
     where M: ToString {
         match Settings::logging_mode() {
             Mode::NONE => return,
@@ -107,17 +113,17 @@ impl Logger {
         }
 
         let output = format!("[ WARNING ] {}\n", message.to_string());
-        let mut stdout = io::stdout().lock();
-        let _ = stdout.write_all(output.as_bytes());
-        let _ = stdout.flush();
+        let mut stdout = STDOUT.lock().await;
+        let _ = stdout.write_all(output.as_bytes()).await;
+        let _ = stdout.flush().await;
     }
 
-    pub fn error<M>(message: M) -> !
+    pub async fn error<M>(message: M) -> !
     where M: ToString {
         let output = format!("[ ERROR ] {}\n", message.to_string());
-        let mut stdout = io::stdout().lock();
-        let _ = stdout.write_all(output.as_bytes());
-        let _ = stdout.flush();
+        let mut stdout = STDOUT.lock().await;
+        let _ = stdout.write_all(output.as_bytes()).await;
+        let _ = stdout.flush().await;
         process::exit(-1);
     }
 }
