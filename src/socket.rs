@@ -34,8 +34,8 @@ async fn lifecycle(socket_map: SocketMap, socket_address: SocketAddr, socket: Ar
         let mut buffer = [0; BUFFER_SIZE];
 
         match socket.readable().await {
-            Err(_) => logger::warning("Socket failed to be readable ").await,
             Ok(_) => (),
+            Err(_) => logger::warning("Socket failed to be readable ").await,
         };
 
         match socket.try_read(&mut buffer) {
